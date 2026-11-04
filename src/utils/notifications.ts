@@ -42,7 +42,7 @@ export function stopVibration() {
 
 export function showTaskNotification(
   task: Task, 
-  onAction?: (action: 'complete' | 'snooze') => void
+  onAction?: (action: 'complete' | 'snooze' | 'tap') => void
 ) {
   triggerVibration([500, 250, 500, 250, 800]);
 

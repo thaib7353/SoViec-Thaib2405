@@ -2,8 +2,8 @@ import { LocalNotifications, Channel, ActionPerformed } from '@capacitor/local-n
 import { isNativePlatform } from './platform';
 import { Task } from '../types';
 
+export type NotificationActionType = 'complete' | 'snooze' | 'tap';
 export type NotificationPermissionState = 'granted' | 'denied' | 'prompt';
-export type NotificationActionType = 'complete' | 'snooze';
 export type NotificationActionHandler = (actionId: NotificationActionType, taskId: string) => void;
 
 /**
@@ -19,7 +19,7 @@ export function taskIdToNotificationId(taskId: string): number {
   return Math.abs(hash) % 2147483647 || 1;
 }
 
-// Channel ID mới v2 để ghi đè mọi cấu hình cũ đã lưu trên Android OS
+// Channel ID mới v2 để áp dụng mức ưu tiên tối đa (IMPORTANCE_MAX) trên Android OS
 export const NOTIFICATION_CHANNEL_ID = 'soviec_reminders_v2';
 export const NOTIFICATION_ACTION_TYPE_ID = 'SOVIEC_TASK_ACTIONS';
 
@@ -125,7 +125,7 @@ class WebNotificationAdapter implements INotificationAdapter {
       notification.onclick = () => {
         window.focus();
         notification.close();
-        this.actionHandlers.forEach((handler) => handler('snooze', task.id));
+        this.actionHandlers.forEach((handler) => handler('tap', task.id));
       };
 
       return true;
@@ -155,10 +155,12 @@ class WebNotificationAdapter implements INotificationAdapter {
 }
 
 /**
- * Adapter xử lý thông báo Native trên Android qua Capacitor LocalNotifications
+ * Adapter xử lý thông báo Native trên Android qua Capacitor LocalNotifications & AlarmManager
  * - Hỗ trợ Notification Channel chuẩn IMPORTANCE_HIGH (Heads-up pop-up banner)
  * - Tự động thiết lập smallIcon hợp lệ (ic_stat_soviec) để Android luôn hiển thị trên thanh trạng thái
+ * - Tự động thiết lập foreground: true để NotificationCompat.Builder kích hoạt PRIORITY_HIGH
  * - Hỗ trợ nút hành động tương tác: "✓ Hoàn thành" và "⏰ Hoãn 10 phút"
+ * - Xử lý sự kiện 'tap' để mở đúng công việc khi người dùng nhấn vào thông báo
  * - Hoạt động ngay cả khi ứng dụng ở Background hoặc đã đóng hoàn toàn (qua AlarmManager)
  */
 class CapacitorNotificationAdapter implements INotificationAdapter {
@@ -206,9 +208,17 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
         ],
       });
 
-      // 4. Lắng nghe hành động khi người dùng bấm nút trên thông báo Heads-up hoặc thanh thông báo
+      // 4. Lắng nghe hành động khi người dùng bấm nút trên thông báo Heads-up hoặc nhấn vào thông báo
       await LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction: ActionPerformed) => {
-        const actionId = notificationAction.actionId === 'complete' ? 'complete' : 'snooze';
+        let actionId: NotificationActionType = 'tap';
+        if (notificationAction.actionId === 'complete') {
+          actionId = 'complete';
+        } else if (notificationAction.actionId === 'snooze') {
+          actionId = 'snooze';
+        } else {
+          actionId = 'tap'; // Nhấn trực tiếp vào thân thông báo
+        }
+
         const taskId = notificationAction.notification?.extra?.taskId;
         if (taskId) {
           this.actionHandlers.forEach((handler) => handler(actionId, taskId));
@@ -302,7 +312,7 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
             actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
             schedule: {
               at: scheduleTime,
-              allowWhileIdle: true, // Kích hoạt ngay cả khi thiết bị ở chế độ Doze / Sleep
+              allowWhileIdle: true, // Kích hoạt AlarmManager.RTC_WAKEUP ngay cả khi thiết bị ở chế độ Doze / Sleep
             },
             extra: {
               taskId: task.id,
@@ -310,7 +320,11 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
             },
             autoCancel: true,
             ongoing: false,
-          },
+            // BẮT BUỘC để LocalNotificationManager.kt gán:
+            // mBuilder.setPriority(NotificationCompat.PRIORITY_HIGH)
+            // Giúp Android hiển thị Heads-up notification dạng biểu ngữ nổi trên màn hình!
+            foreground: true,
+          } as any,
         ],
       });
       return true;
@@ -344,13 +358,12 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
 
   getPermissionGuide() {
     return {
-      title: 'Bật thông báo ứng dụng trên Android (Heads-up Notification)',
+      title: 'Bật thông báo và báo thức chính xác trên Android',
       steps: [
-        'Mở mục "Cài đặt" (Settings) trên điện thoại Android.',
-        'Chọn "Ứng dụng" -> Tìm và chọn "Sổ Việc".',
-        'Chọn mục "Thông báo" (Notifications).',
-        'Bật công tắc "Tất cả thông báo của Sổ Việc".',
-        'Bật thêm mục "Hiển thị dạng biểu ngữ / Pop-up trên màn hình" (Heads-up) để nhận thông báo nổi.',
+        'Mở "Cài đặt" trên điện thoại -> Chọn "Ứng dụng" -> "Sổ Việc".',
+        'Vào mục "Thông báo": Bật "Tất cả thông báo" và cho phép "Hiển thị biểu ngữ nổi (Heads-up / Pop-up)".',
+        'Vào mục "Quyền nâng cao" (hoặc "Truy cập đặc biệt"): Bật quyền "Báo thức và lời nhắc" (Alarms & Reminders) để kích hoạt báo thức chính xác.',
+        'Vào mục "Pin / Tiết kiệm pin": Chọn "Không hạn chế" (Unrestricted) để Android không tự động tắt chuông khi màn hình khóa.',
       ],
     };
   }

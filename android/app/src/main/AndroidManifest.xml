@@ -35,11 +35,14 @@
         </provider>
     </application>
 
-    <!-- Permissions (Tuân thủ chính sách Google Play Store & Android 12+) -->
+    <!-- Permissions (Tuân thủ chính sách Android 12-15 & Google Play Store cho ứng dụng nhắc việc/lịch) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.READ_CALENDAR" />
     <uses-permission android:name="android.permission.WRITE_CALENDAR" />
 </manifest>

@@ -284,6 +284,16 @@ export default function App() {
         handleDismissAlarm();
       } else if (actionId === 'snooze') {
         handleSnooze(taskId, 10); // Hoãn 10 phút theo yêu cầu Giai đoạn 2A
+      } else if (actionId === 'tap') {
+        // Yêu cầu 9: Khi người dùng nhấn thông báo, mở đúng công việc tương ứng
+        setTasks((currentTasks) => {
+          const target = currentTasks.find((t) => t.id === taskId);
+          if (target) {
+            setEditingTask(target);
+            setIsEditorOpen(true);
+          }
+          return currentTasks;
+        });
       }
     });
 

@@ -224,21 +224,21 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800 space-y-3">
             <div className="flex items-center justify-between">
               <span className="font-bold text-slate-900 dark:text-white block">
-                Thông báo Android (Heads-up)
+                Thông báo & Báo thức độc lập
               </span>
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold">
-                Kênh ưu tiên cao (High)
+                Kênh Heads-up (Tối đa)
               </span>
             </div>
 
-            <p className="text-slate-500 dark:text-slate-400 text-[11px]">
-              Kênh thông báo <code className="text-blue-600 dark:text-blue-400 font-mono">soviec_reminders</code> hiển thị dạng pop-up nổi trên màn hình với 2 nút hành động: <strong>✓ Hoàn thành</strong> và <strong>⏰ Hoãn 10 phút</strong>.
+            <p className="text-slate-500 dark:text-slate-400 text-[11px] leading-relaxed">
+              Kênh thông báo <code className="text-blue-600 dark:text-blue-400 font-mono">soviec_reminders_v2</code> kết hợp cùng hệ thống <strong>Android AlarmManager (RTC_WAKEUP)</strong> kích hoạt chuông và biểu ngữ nổi đúng từng giây ngay cả khi đã tắt ứng dụng khỏi màn hình đa nhiệm.
             </p>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between pt-1">
               <div>
-                <span className="font-semibold text-slate-800 dark:text-slate-200 block">
-                  Trạng thái quyền:
+                <span className="font-semibold text-slate-800 dark:text-slate-200 block text-xs">
+                  Quyền thông báo (POST_NOTIFICATIONS):
                 </span>
                 <span className={`text-[11px] font-bold ${
                   permission === 'granted' 
@@ -247,7 +247,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       ? 'text-rose-600 dark:text-rose-400' 
                       : 'text-amber-600 dark:text-amber-400'
                 }`}>
-                  {permission === 'granted' ? '✓ Đã cấp quyền' : permission === 'denied' ? '✗ Bị từ chối' : 'Chưa cấp quyền'}
+                  {permission === 'granted' ? '✓ Đã cấp quyền đầy đủ' : permission === 'denied' ? '✗ Bị từ chối (Vào cài đặt máy để bật)' : 'Chưa cấp quyền'}
                 </span>
               </div>
 
@@ -255,17 +255,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <button
                   type="button"
                   onClick={handleRequestNotification}
-                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold cursor-pointer"
+                  className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold cursor-pointer text-xs"
                 >
                   Cấp quyền
                 </button>
               )}
             </div>
 
+            {/* Hướng dẫn Android 12-15 Exact Alarm & Pin */}
+            <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/50 text-[11px] space-y-1.5 text-slate-700 dark:text-slate-300">
+              <span className="font-bold text-blue-700 dark:text-blue-300 flex items-center gap-1.5">
+                <Bell className="w-3.5 h-3.5" />
+                Mẹo để điện thoại luôn reo đúng giờ khi tắt màn hình:
+              </span>
+              <ul className="list-disc list-inside space-y-0.5 text-[10.5px] text-slate-600 dark:text-slate-400">
+                <li>Vào <strong>Cài đặt máy &gt; Ứng dụng &gt; Sổ Việc &gt; Quyền</strong>: Đảm bảo đã bật <strong>Thông báo</strong>.</li>
+                <li>Mục <strong>Báo thức và lời nhắc (Alarms & reminders)</strong>: Chọn <strong>Cho phép</strong> (Exact Alarm).</li>
+                <li>Mục <strong>Pin / Tiết kiệm pin</strong>: Chọn <strong>Không hạn chế (Unrestricted)</strong> để Android không đóng tác vụ ngầm khi máy ngủ sâu.</li>
+              </ul>
+            </div>
+
             <button
               type="button"
               onClick={handleTestNotification}
-              className="w-full py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+              className="w-full py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 text-slate-700 dark:text-slate-300 font-semibold flex items-center justify-center gap-1.5 cursor-pointer text-xs"
             >
               <Bell className="w-3.5 h-3.5 text-blue-500" />
               <span>Gửi thử thông báo Heads-up mẫu</span>
