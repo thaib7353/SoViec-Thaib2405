@@ -118,7 +118,7 @@ export const StatsView: React.FC<StatsViewProps> = ({
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-4 bg-slate-50 dark:bg-slate-950">
+    <div className="flex-1 overflow-y-auto px-4 pt-4 pb-36 sm:pb-40 space-y-4 bg-slate-50 dark:bg-slate-950">
       {/* Thẻ Thống Kê Chính */}
       <div className="bg-white dark:bg-slate-900 rounded-3xl p-5 border border-slate-200 dark:border-slate-800 shadow-xs">
         <div className="mb-4">

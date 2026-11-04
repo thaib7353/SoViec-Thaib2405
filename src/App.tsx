@@ -475,7 +475,7 @@ export default function App() {
 
     if (currentTab === 'categories') {
       return (
-        <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3 bg-slate-50 dark:bg-slate-950">
+        <div className="flex-1 overflow-y-auto px-4 pt-4 pb-36 sm:pb-40 space-y-3 bg-slate-50 dark:bg-slate-950">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-base font-bold text-slate-900 dark:text-white">
@@ -540,7 +540,7 @@ export default function App() {
 
     // Task List views: Today, Upcoming, All, Completed
     return (
-      <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-4 bg-slate-50 dark:bg-slate-950">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-36 sm:pb-40 space-y-4 bg-slate-50 dark:bg-slate-950">
         {/* Active Category Filter Banner (if selected) */}
         {selectedCategoryFilter && (
           <div className="p-2.5 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60 flex items-center justify-between text-xs">

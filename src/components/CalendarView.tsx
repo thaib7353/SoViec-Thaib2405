@@ -216,7 +216,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       </div>
 
       {/* Selected Day Task List Feed */}
-      <div className="flex-1 overflow-y-auto p-4 pb-24 space-y-3">
+      <div className="flex-1 overflow-y-auto px-4 pt-4 pb-36 sm:pb-40 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />

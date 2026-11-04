@@ -9,6 +9,7 @@ import {
   X
 } from 'lucide-react';
 import { PriorityLevel, ViewTab } from '../types';
+import { isNativePlatform } from '../adapters/platform';
 
 interface TopBarProps {
   currentTab: ViewTab;
@@ -31,7 +32,7 @@ const TAB_TITLES: Record<ViewTab, string> = {
   completed: 'Đã hoàn thành',
   calendar: 'Lịch biểu',
   categories: 'Danh mục',
-  stats: 'Thống kê & Tập trung',
+  stats: 'Thống kê',
   settings: 'Cài đặt',
 };
 
@@ -49,17 +50,21 @@ export const TopBar: React.FC<TopBarProps> = ({
   onInstallApp,
 }) => {
   const [showSearch, setShowSearch] = React.useState(false);
+  const isNative = isNativePlatform();
 
   return (
-    <header className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 transition-colors">
-      <div className="flex items-center justify-between gap-3 px-4 py-3">
+    <header 
+      className="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 z-20 transition-colors"
+      style={{ paddingTop: 'max(env(safe-area-inset-top, 0px), 0px)' }}
+    >
+      <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 sm:px-4 sm:py-3 w-full">
         {/* Zone 1: Brand & View Title */}
-        <div className="flex items-center gap-2.5 min-w-0">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1 mr-1">
           <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm shrink-0">
             <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
           </div>
           <div className="min-w-0">
-            <h1 className="text-base font-bold text-slate-900 dark:text-white truncate tracking-tight">
+            <h1 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white truncate tracking-tight">
               {TAB_TITLES[currentTab]}
             </h1>
             <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
@@ -69,11 +74,11 @@ export const TopBar: React.FC<TopBarProps> = ({
         </div>
 
         {/* Zone 2 & 3: Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Search Toggle */}
           <button
             onClick={() => setShowSearch(!showSearch)}
-            className={`min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg transition-colors cursor-pointer ${
+            className={`min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl transition-colors cursor-pointer ${
               showSearch || searchQuery 
                 ? 'bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400' 
                 : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -84,20 +89,22 @@ export const TopBar: React.FC<TopBarProps> = ({
             <Search className="w-4 h-4" />
           </button>
 
-          {/* Android APK / PWA Export CTA */}
-          <button
-            onClick={isInstallable ? onInstallApp : onOpenApkModal}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer whitespace-nowrap active:scale-95"
-            title="Cài đặt lên Android hoặc xuất file APK"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline">Cài APK</span>
-          </button>
+          {/* Android APK / PWA Export CTA: Chỉ hiển thị trên Web, ẩn trên ứng dụng Android APK thật để tối ưu diện tích */}
+          {!isNative && (
+            <button
+              onClick={isInstallable ? onInstallApp : onOpenApkModal}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-sm transition-all cursor-pointer whitespace-nowrap active:scale-95"
+              title="Cài đặt lên Android hoặc xuất file APK"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden xs:inline">Cài APK</span>
+            </button>
+          )}
 
           {/* Dark / Light Mode Toggle */}
           <button
             onClick={onToggleTheme}
-            className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title={theme === 'dark' ? 'Chuyển sang giao diện Sáng' : 'Chuyển sang giao diện Tối'}
             aria-label="Chuyển chế độ giao diện"
           >
@@ -107,7 +114,7 @@ export const TopBar: React.FC<TopBarProps> = ({
           {/* Settings Trigger */}
           <button
             onClick={onOpenSettings}
-            className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="min-h-[38px] min-w-[38px] flex items-center justify-center rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             title="Cài đặt âm thanh & dữ liệu"
             aria-label="Cài đặt"
           >
