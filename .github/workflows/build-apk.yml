@@ -5,13 +5,7 @@ on:
     branches: [ main, master ]
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch: # Cho phép kích hoạt thủ công trên giao diện GitHub Actions
-    inputs:
-      confirm_licenses:
-        description: 'Xác nhận đồng ý Điều khoản Giấy phép Google Android SDK (android-sdk-license)'
-        required: true
-        type: boolean
-        default: true
+  workflow_dispatch:
 
 jobs:
   build-apk:
@@ -33,25 +27,25 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: 4. Thiết lập Android SDK (Chỉ cài đặt các gói cần thiết)
+      - name: 4. Thiết lập Android SDK (Cài đặt SDK 36 và công cụ biên dịch)
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platform-tools build-tools;34.0.0 platforms;android-34'
+          packages: 'platform-tools build-tools;36.0.0 platforms;android-36'
           accept-android-sdk-licenses: 'true'
           log-accepted-android-sdk-licenses: 'false'
 
-      - name: 5. Đảm bảo giấy phép Android SDK được chấp thuận (Môi trường CI không tương tác)
+      - name: 5. Ghi nhận chữ ký giấy phép Android SDK
         run: |
           mkdir -p "$ANDROID_HOME/licenses"
-          # Ghi nhận chữ ký số giấy phép chính thức Google Android SDK (android-sdk-license)
-          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> "$ANDROID_HOME/licenses/android-sdk-license"
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> "$ANDROID_HOME/licenses/android-sdk-license"
-          echo "84831b9409646a918e30573bab4c9c91346d8abd" >> "$ANDROID_HOME/licenses/android-sdk-license"
-          # Chấp thuận không tương tác tự động cho tất cả gói phụ thuộc, tránh dừng chờ nhập y/N
-          yes | sdkmanager --licenses 2>/dev/null || true
+          printf "24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e\n84831b9409646a918e30573bab4c9c91346d8abd\n" > "$ANDROID_HOME/licenses/android-sdk-license"
+          printf "84831b9409646a918e30573bab4c9c91346d8abd\n7ff6e4fd1e611a326490c2fa18c293628e5718ee\n" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          printf "e9acab5b5fbb560a72cfa4f69c595b248e45269c\n" > "$ANDROID_HOME/licenses/mips-android-sysimage-license"
+          printf "601085b94cd77f0b54ff86406957099150770288\n" > "$ANDROID_HOME/licenses/android-googletv-license"
+          printf "859f317696f67ef3d7f30a50a5560e7834b43903\n" > "$ANDROID_HOME/licenses/android-sdk-arm-dbt-license"
+          printf "33b6a2b64607f11b759f320ef9dff4ae5c47d97a\n" > "$ANDROID_HOME/licenses/google-gdk-license"
 
       - name: 6. Cài đặt các thư viện npm
-        run: npm ci --legacy-peer-deps || npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
       - name: 7. Biên dịch mã nguồn Web (React + Vite)
         run: npm run build
@@ -67,11 +61,12 @@ jobs:
 
       - name: 11. Biên dịch Android Debug APK
         working-directory: android
-        run: ./gradlew assembleDebug --stacktrace
+        run: ./gradlew assembleDebug
 
-      - name: 12. Đính kèm file APK vào Artifacts để tải về
+      - name: 12. Đính kèm file app-debug.apk vào Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: SoViec-Android-Debug-APK
+          name: app-debug
           path: android/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
           retention-days: 14
