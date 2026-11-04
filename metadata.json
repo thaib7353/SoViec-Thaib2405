@@ -2,5 +2,7 @@
   "name": "Sổ Việc - Quản Lý Công Việc & Báo Thức",
   "description": "Ứng dụng quản lý công việc và nhắc nhở phong cách TickTick cho Android với báo thức liên tục, lịch làm việc, phân loại danh mục và chạy ngoại tuyến.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

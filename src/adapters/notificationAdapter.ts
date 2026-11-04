@@ -3,9 +3,7 @@ import { isNativePlatform } from './platform';
 import { Task } from '../types';
 
 export type NotificationPermissionState = 'granted' | 'denied' | 'prompt';
-
 export type NotificationActionType = 'complete' | 'snooze';
-
 export type NotificationActionHandler = (actionId: NotificationActionType, taskId: string) => void;
 
 /**
@@ -21,8 +19,9 @@ export function taskIdToNotificationId(taskId: string): number {
   return Math.abs(hash) % 2147483647 || 1;
 }
 
-export const NOTIFICATION_CHANNEL_ID = 'soviec_reminders';
-export const NOTIFICATION_ACTION_TYPE_ID = 'TASK_REMINDER_ACTIONS';
+// Channel ID mới v2 để ghi đè mọi cấu hình cũ đã lưu trên Android OS
+export const NOTIFICATION_CHANNEL_ID = 'soviec_reminders_v2';
+export const NOTIFICATION_ACTION_TYPE_ID = 'SOVIEC_TASK_ACTIONS';
 
 export interface INotificationAdapter {
   init(): Promise<void>;
@@ -35,6 +34,9 @@ export interface INotificationAdapter {
   getPermissionGuide(): { title: string; steps: string[] };
 }
 
+/**
+ * Adapter xử lý thông báo trên môi trường Web Browser / PWA
+ */
 class WebNotificationAdapter implements INotificationAdapter {
   private actionHandlers: Set<NotificationActionHandler> = new Set();
   private scheduledTimers: Map<string, number> = new Map();
@@ -64,6 +66,7 @@ class WebNotificationAdapter implements INotificationAdapter {
 
   async scheduleTaskReminder(task: Task, triggerAt?: Date): Promise<boolean> {
     this.cancelTaskReminder(task.id);
+
     if (task.completed || !task.reminder?.enabled) return false;
 
     let targetTime: number | null = null;
@@ -151,6 +154,13 @@ class WebNotificationAdapter implements INotificationAdapter {
   }
 }
 
+/**
+ * Adapter xử lý thông báo Native trên Android qua Capacitor LocalNotifications
+ * - Hỗ trợ Notification Channel chuẩn IMPORTANCE_HIGH (Heads-up pop-up banner)
+ * - Tự động thiết lập smallIcon hợp lệ (ic_stat_soviec) để Android luôn hiển thị trên thanh trạng thái
+ * - Hỗ trợ nút hành động tương tác: "✓ Hoàn thành" và "⏰ Hoãn 10 phút"
+ * - Hoạt động ngay cả khi ứng dụng ở Background hoặc đã đóng hoàn toàn (qua AlarmManager)
+ */
 class CapacitorNotificationAdapter implements INotificationAdapter {
   private isInitialized = false;
   private actionHandlers: Set<NotificationActionHandler> = new Set();
@@ -159,20 +169,25 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
     if (this.isInitialized) return;
 
     try {
-      // 1. Tạo NotificationChannel trên Android (Importance 5 = IMPORTANCE_HIGH cho Heads-up notification)
+      // 1. Dọn dẹp channel cũ nếu có để đảm bảo Android áp dụng cấu hình Heads-up mới
+      try {
+        await LocalNotifications.deleteChannel({ id: 'soviec_reminders' });
+      } catch {}
+
+      // 2. Tạo NotificationChannel trên Android với mức ưu tiên tối đa (Importance 5 = IMPORTANCE_MAX)
       const channel: Channel = {
         id: NOTIFICATION_CHANNEL_ID,
-        name: 'Nhắc việc Sổ Việc',
-        description: 'Kênh phát thông báo nhắc việc Heads-up và chuông báo của ứng dụng Sổ Việc',
-        importance: 5, // IMPORTANCE_HIGH: Pop-up / banner trên màn hình Android
-        visibility: 1, // VISIBILITY_PUBLIC: Hiển thị trên màn hình khóa
+        name: 'Nhắc việc & Chuông báo Sổ Việc',
+        description: 'Hiển thị biểu ngữ thông báo Heads-up trên màn hình và chuông báo nhắc nhở công việc',
+        importance: 5, // IMPORTANCE_HIGH / MAX: Bắt buộc để Android hiển thị pop-up / banner nổi
+        visibility: 1, // VISIBILITY_PUBLIC: Hiển thị đầy đủ nội dung trên màn hình khóa
         vibration: true,
         lights: true,
-        lightColor: '#2563eb',
+        lightColor: '#2563EB',
       };
       await LocalNotifications.createChannel(channel);
 
-      // 2. Đăng ký Action Types: Nút "✓ Hoàn thành" và "⏰ Hoãn 10 phút"
+      // 3. Đăng ký Action Types: Nút "✓ Hoàn thành" và "⏰ Hoãn 10 phút"
       await LocalNotifications.registerActionTypes({
         types: [
           {
@@ -191,7 +206,7 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
         ],
       });
 
-      // 3. Lắng nghe hành động khi người dùng bấm nút trên thông báo Heads-up
+      // 4. Lắng nghe hành động khi người dùng bấm nút trên thông báo Heads-up hoặc thanh thông báo
       await LocalNotifications.addListener('localNotificationActionPerformed', (notificationAction: ActionPerformed) => {
         const actionId = notificationAction.actionId === 'complete' ? 'complete' : 'snooze';
         const taskId = notificationAction.notification?.extra?.taskId;
@@ -230,9 +245,16 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
 
   async scheduleTaskReminder(task: Task, triggerAt?: Date): Promise<boolean> {
     await this.init();
+
     if (task.completed || !task.reminder?.enabled) {
       await this.cancelTaskReminder(task.id);
       return false;
+    }
+
+    // Tự động kiểm tra quyền thông báo trên Android (POST_NOTIFICATIONS)
+    const permStatus = await this.checkPermission();
+    if (permStatus === 'prompt') {
+      await this.requestPermission();
     }
 
     let targetDate: Date | null = null;
@@ -260,6 +282,9 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
 
     const notifId = taskIdToNotificationId(task.id);
     const bodyText = task.notes ? task.notes : (task.dueTime ? `Đến giờ thực hiện: ${task.dueTime}` : 'Công việc cần hoàn thành');
+    const largeBodyText = task.notes 
+      ? `${task.notes}\nĐến giờ: ${task.dueTime || 'Hôm nay'}` 
+      : `Đến giờ thực hiện công việc: ${task.dueTime || 'Hôm nay'}`;
 
     try {
       await LocalNotifications.schedule({
@@ -268,17 +293,23 @@ class CapacitorNotificationAdapter implements INotificationAdapter {
             id: notifId,
             title: `⏰ Nhắc việc: ${task.title}`,
             body: bodyText,
+            largeBody: largeBodyText,
+            summaryText: 'Sổ Việc Android',
             channelId: NOTIFICATION_CHANNEL_ID,
+            // SmallIcon BẮT BUỘC hợp lệ để Android hiển thị icon trên thanh trạng thái và bảng thông báo
+            smallIcon: 'ic_stat_soviec',
+            iconColor: '#2563EB',
             actionTypeId: NOTIFICATION_ACTION_TYPE_ID,
             schedule: {
               at: scheduleTime,
-              allowWhileIdle: true,
+              allowWhileIdle: true, // Kích hoạt ngay cả khi thiết bị ở chế độ Doze / Sleep
             },
             extra: {
               taskId: task.id,
               title: task.title,
             },
             autoCancel: true,
+            ongoing: false,
           },
         ],
       });

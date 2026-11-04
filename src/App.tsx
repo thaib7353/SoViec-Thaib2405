@@ -260,9 +260,23 @@ export default function App() {
     );
   }, []);
 
-  // Giai đoạn 2A: Khởi tạo Notification Channel, Heads-up Notification và lắng nghe nút Hoàn thành / Hoãn 10 phút
+  // Giai đoạn 2A: Khởi tạo Notification Channel, Heads-up Notification, xin quyền và đồng bộ lịch nhắc
   useEffect(() => {
-    notificationAdapter.init();
+    notificationAdapter.init().then(() => {
+      // Tự động kiểm tra và yêu cầu quyền POST_NOTIFICATIONS trên Android 13+ khi mở app
+      notificationAdapter.checkPermission().then((status) => {
+        if (status === 'prompt') {
+          notificationAdapter.requestPermission();
+        }
+      });
+
+      // Đăng ký lịch nhắc nhở vào Android AlarmManager cho các việc chưa hoàn thành
+      tasks.forEach((t) => {
+        if (!t.completed && t.reminder?.enabled) {
+          notificationAdapter.scheduleTaskReminder(t);
+        }
+      });
+    });
 
     const unsubscribe = notificationAdapter.onActionPerformed((actionId, taskId) => {
       if (actionId === 'complete') {
